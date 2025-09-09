@@ -2,21 +2,48 @@ import { useState, useEffect } from "react";
 
 export default function SchoolCatalog() {
   const [courses, setCourses] = useState([]);
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
 
-  // Load course data from API when component mounts
   useEffect(() => {
     fetch("/api/courses.json")
       .then((res) => res.json())
       .then((data) => setCourses(data));
   }, []);
 
-  // Filter by course number or course name
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle sort direction if same column clicked again
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column to sort
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Filter by search term (course number + course name only)
   const filteredCourses = courses.filter(
     (course) =>
-      course.courseNumber.toLowerCase().includes(search.toLowerCase()) ||
-      course.courseName.toLowerCase().includes(search.toLowerCase())
+      course.courseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.courseName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Sort based on selected column + direction
+  const sortedCourses = [...filteredCourses].sort((a, b) => {
+    if (!sortColumn) return 0; // no sorting if nothing selected
+    let valA = a[sortColumn];
+    let valB = b[sortColumn];
+
+    // Convert strings to lowercase for case-insensitive sorting
+    if (typeof valA === "string") valA = valA.toLowerCase();
+    if (typeof valB === "string") valB = valB.toLowerCase();
+
+    if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+    if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+    return 0;
+  });
 
   return (
     <div className="school-catalog">
@@ -24,23 +51,27 @@ export default function SchoolCatalog() {
       <input
         type="text"
         placeholder="Search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
       />
       <table>
         <thead>
           <tr>
-            <th>Trimester</th>
-            <th>Course Number</th>
-            <th>Course Name</th>
-            <th>Semester Credits</th>
-            <th>Total Clock Hours</th>
+            <th onClick={() => handleSort("trimester")}>Trimester</th>
+            <th onClick={() => handleSort("courseNumber")}>Course Number</th>
+            <th onClick={() => handleSort("courseName")}>Course Name</th>
+            <th onClick={() => handleSort("semesterCredits")}>
+              Semester Credits
+            </th>
+            <th onClick={() => handleSort("totalClockHours")}>
+              Total Clock Hours
+            </th>
             <th>Enroll</th>
           </tr>
         </thead>
         <tbody>
-          {filteredCourses.map((course) => (
-            <tr key={course.courseNumber}>
+          {sortedCourses.map((course, index) => (
+            <tr key={index}>
               <td>{course.trimester}</td>
               <td>{course.courseNumber}</td>
               <td>{course.courseName}</td>
