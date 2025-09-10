@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { CourseContext } from "./App";
 
 export default function SchoolCatalog() {
   const [courses, setCourses] = useState([]);
@@ -7,6 +8,9 @@ export default function SchoolCatalog() {
   const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
+
+  // ✅ Pull context functions from App.jsx
+  const { enrollCourse, enrolledCourses } = useContext(CourseContext);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -46,12 +50,16 @@ export default function SchoolCatalog() {
     return 0;
   });
 
-  // Pagination: slice sortedCourses to current page
+  // Pagination
   const totalPages = Math.ceil(sortedCourses.length / rowsPerPage);
   const paginatedCourses = sortedCourses.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
+
+  // Check if a course is already enrolled
+  const isEnrolled = (courseNumber) =>
+    enrolledCourses.some((c) => c.courseNumber === courseNumber);
 
   return (
     <div className="school-catalog">
@@ -78,15 +86,20 @@ export default function SchoolCatalog() {
           </tr>
         </thead>
         <tbody>
-          {paginatedCourses.map((course, index) => (
-            <tr key={index}>
+          {paginatedCourses.map((course) => (
+            <tr key={course.courseNumber}>
               <td>{course.trimester}</td>
               <td>{course.courseNumber}</td>
               <td>{course.courseName}</td>
               <td>{course.semesterCredits}</td>
               <td>{course.totalClockHours}</td>
               <td>
-                <button>Enroll</button>
+                <button
+                  onClick={() => enrollCourse(course)}
+                  disabled={isEnrolled(course.courseNumber)}
+                >
+                  {isEnrolled(course.courseNumber) ? "Enrolled" : "Enroll"}
+                </button>
               </td>
             </tr>
           ))}
